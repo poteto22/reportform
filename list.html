@@ -32,10 +32,10 @@
       color: #fff;
       background: #2196F3;
     }
-    .card .status.ใหม่ { background: #f44336; }
-    .card .status.กำลังดำเนินการ { background: #ff9800; }
-    .card .status.แก้ไขแล้ว { background: #4caf50; }
-    .card .status.ปิด { background: #607d8b; }
+    .card .status.New { background: #f44336; }
+    .card .status.In-Progress { background: #ffeb3b; color: #333; }
+    .card .status.Resolved { background: #4caf50; }
+    .card .status.Closed { background: #2196F3; }
 
     /* Modal styles */
     .modal-bg {
@@ -57,6 +57,8 @@
       box-shadow: 0 8px 32px rgba(0,0,0,0.18);
       position: relative;
       animation: fadeIn 0.2s;
+      max-height: 90vh;
+      overflow-y: auto;
     }
     @keyframes fadeIn {
       from { transform: translateY(40px); opacity: 0; }
@@ -128,6 +130,8 @@
       .modal {
         max-width: 99vw;
         padding: 16px 6px 12px 6px;
+        max-height: 92vh;
+        overflow-y: auto;
       }
       .modal h3 {
         font-size: 1.15em;
@@ -141,9 +145,64 @@
       }
       .modal .img-list img,
       .modal .row img {
-        max-width: 90px !important;
-        max-height: 90px !important;
+        max-width: 100px !important;
+        max-height: 100px !important;
       }
+    }
+    .status-select {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #bbb;
+      font-size: 1em;
+      margin-left: 8px;
+      background: #f7faff;
+      transition: border 0.2s;
+    }
+    .status-select:focus {
+      border: 1.5px solid #2196f3;
+      outline: none;
+    }
+    .save-btn, .close-btn-bottom {
+      min-width: 120px;
+      flex: 1 1 0;
+      max-width: 180px;
+      padding: 10px 0;
+      font-size: 1.08em;
+      font-weight: bold;
+      border-radius: 6px;
+      box-sizing: border-box;
+      border: 1.5px solid #2196f3;
+      box-shadow: 0 2px 8px rgba(33,150,243,0.08);
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    .save-btn {
+      background: linear-gradient(90deg, #2196f3 60%, #4fc3f7 100%);
+      color: #fff;
+      border: none;
+    }
+    .save-btn:hover:enabled {
+      background: linear-gradient(90deg, #1976d2 60%, #4fc3f7 100%);
+      box-shadow: 0 4px 16px rgba(33,150,243,0.15);
+    }
+    .save-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .close-btn-bottom {
+      background: #fff;
+      color: #2196f3;
+    }
+    .close-btn-bottom:hover {
+      background: #2196f3;
+      color: #fff;
+    }
+    .btn-group-modal {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      gap: 16px;
+      margin-top: 18px;
     }
   </style>
 </head>
@@ -158,6 +217,10 @@
       <h3>รายละเอียดข้อมูล</h3>
       <div id="modalContent"></div>
     </div>
+  </div>
+
+  <div id="lightboxBg" style="display:none;position:fixed;z-index:3000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.85);justify-content:center;align-items:center;">
+    <img id="lightboxImg" src="" alt="รูปภาพขยาย" style="max-width:95vw;max-height:90vh;border-radius:10px;box-shadow:0 4px 32px #0008;">
   </div>
 
   <script>
@@ -181,19 +244,37 @@
         }
         header = data[0];
         allData = data.slice(1);
+        // เรียงข้อมูลจากวันที่ใหม่สุดไปเก่าสุด (index 1 คือวันที่)
+        allData.sort((a, b) => {
+          const parseDate = str => {
+            if (!str) return 0;
+            // รูปแบบ: 24/6/2025, 16:22:54
+            const match = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:, *(\d{1,2}:\d{2}:\d{2}))?$/);
+            if (!match) return 0;
+            const [ , d, m, y, time ] = match;
+            // เติม 0 ให้เดือนและวันถ้าจำเป็น
+            const day = d.padStart(2, '0');
+            const month = m.padStart(2, '0');
+            const t = time ? time : '00:00:00';
+            // ใช้รูปแบบที่ JS รองรับแน่นอน: yyyy-mm-ddTHH:MM:SS
+            return new Date(`${y}-${month}-${day}T${t}`).getTime();
+          };
+          return parseDate(b[1]) - parseDate(a[1]);
+        });
         allData.forEach(row => {
           console.log('Row:', row);
           const id = row[0] || '-';
           const date = row[1] || '-';
           const desc = row[4] || '-';
           const status = row[6] || '-';
+          const statusClass = (status || '').replace(/\s+/g, '-');
           const card = document.createElement('div');
           card.className = 'card';
           card.innerHTML = `
             <div class="id">ID: ${id}</div>
             <div class="date">วันที่: ${date}</div>
             <div class="desc">รายละเอียด: ${desc}</div>
-            <div class="status ${status}">${status}</div>
+            <div class="status ${statusClass}">${status}</div>
           `;
           card.onclick = () => showDetailById(id);
           container.appendChild(card);
@@ -225,20 +306,87 @@
         if (i >= 9 && i <= 13) {
           const imgUrl = extractImageUrl(row[i]);
           if (imgUrl) {
-            console.log('imgUrl:', imgUrl);
+            const cleanUrl = imgUrl.replace(/["')]+$/g, '');
+            const proxyUrl = 'http://192.168.22.126:3000/image-proxy?url=' + encodeURIComponent(cleanUrl);
             const div = document.createElement('div');
             div.className = 'row';
-            const proxyUrl = 'http://192.168.22.126:3000/image-proxy?url=' + encodeURIComponent(imgUrl);
-            div.innerHTML = `<span class="label">${h}:</span> <span class="value"><img src="${proxyUrl}" alt="รูปภาพ" loading="lazy" style="max-width:100px;max-height:100px;display:block;"></span>`;
+            div.innerHTML = `<span class="label">${h}:</span> <span class="value"><img src="${proxyUrl}" alt="รูปภาพ" loading="lazy" style="max-width:200px;max-height:200px;display:block;cursor:zoom-in;" onclick="openLightbox('${proxyUrl}')"></span>`;
             modalContent.appendChild(div);
-            return;
+          } else {
+            const div = document.createElement('div');
+            div.className = 'row';
+            div.innerHTML = `<span class="label">${h}:</span> <span class="value">${row[i] || '-'}</span>`;
+            modalContent.appendChild(div);
           }
+        } else if (i === 8 || h === 'หมายเหตุ' || h.toLowerCase().includes('note')) {
+          // เพิ่ม textarea สำหรับหมายเหตุ (index 8)
+          const noteDiv = document.createElement('div');
+          noteDiv.className = 'row';
+          noteDiv.innerHTML = `<span class="label">${h}:</span> <span class="value"><textarea id="noteInput" style="width:180px;min-height:48px;resize:vertical;">${row[i] || ''}</textarea></span>`;
+          modalContent.appendChild(noteDiv);
+        } else {
+          const div = document.createElement('div');
+          div.className = 'row';
+          div.innerHTML = `<span class="label">${h}:</span> <span class="value">${row[i] || '-'}</span>`;
+          modalContent.appendChild(div);
         }
-        const div = document.createElement('div');
-        div.className = 'row';
-        div.innerHTML = `<span class="label">${h}:</span> <span class="value">${row[i] || '-'}</span>`;
-        modalContent.appendChild(div);
       });
+
+      // เพิ่ม dropdown สำหรับสถานะ
+      const statusOptions = ['New', 'In Progress', 'Resolved', 'Closed'];
+      const currentStatus = row[6] || '';
+      const statusSelect = document.createElement('select');
+      statusSelect.className = 'status-select';
+      statusOptions.forEach(opt => {
+        const option = document.createElement('option');
+        option.value = opt;
+        option.textContent = opt;
+        if (opt === currentStatus) option.selected = true;
+        statusSelect.appendChild(option);
+      });
+
+      const statusRow = document.createElement('div');
+      statusRow.className = 'row';
+      statusRow.innerHTML = `<span class="label">สถานะ:</span> `;
+      statusRow.appendChild(statusSelect);
+      modalContent.appendChild(statusRow);
+
+      // ปุ่มบันทึกเดียว (รวมสถานะและหมายเหตุ)
+      const saveAllBtn = document.createElement('button');
+      saveAllBtn.textContent = 'บันทึก';
+      saveAllBtn.className = 'save-btn';
+      saveAllBtn.style.marginBottom = '8px';
+      saveAllBtn.onclick = function() {
+        const note = document.getElementById('noteInput') ? document.getElementById('noteInput').value : '';
+        fetch('http://192.168.22.126:3000/update-status-note', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, status: statusSelect.value, note })
+        })
+        .then(res => res.text())
+        .then(msg => {
+          showToast(msg, true);
+          closeModal();
+          setTimeout(() => location.reload(), 1000);
+        })
+        .catch(err => {
+          showToast('เกิดข้อผิดพลาด: ' + err, false);
+        });
+      };
+
+      // ปุ่มปิดด้านข้าง
+      const closeBtn = document.createElement('button');
+      closeBtn.textContent = 'ปิด';
+      closeBtn.className = 'close-btn-bottom';
+      closeBtn.onclick = closeModal;
+
+      // กล่อง flex สำหรับปุ่ม
+      const btnGroup = document.createElement('div');
+      btnGroup.className = 'btn-group-modal';
+      btnGroup.appendChild(saveAllBtn);
+      btnGroup.appendChild(closeBtn);
+      modalContent.appendChild(btnGroup);
+
       document.getElementById('modalBg').classList.add('active');
     }
 
@@ -254,6 +402,42 @@
     // ปิด modal เมื่อกดปุ่ม Esc
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape') closeModal();
+    });
+
+    // Toast แจ้งเตือน
+    function showToast(msg, success) {
+      let toast = document.getElementById('toast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'toast';
+        document.body.appendChild(toast);
+      }
+      toast.textContent = msg;
+      toast.style.background = success ? '#4caf50' : '#f44336';
+      toast.style.color = '#fff';
+      toast.style.position = 'fixed';
+      toast.style.bottom = '30px';
+      toast.style.left = '50%';
+      toast.style.transform = 'translateX(-50%)';
+      toast.style.padding = '14px 28px';
+      toast.style.borderRadius = '8px';
+      toast.style.fontSize = '1.1em';
+      toast.style.zIndex = 2000;
+      toast.style.opacity = 1;
+      setTimeout(() => { toast.style.opacity = 0; }, 2000);
+    }
+
+    function openLightbox(imgUrl) {
+      var bg = document.getElementById('lightboxBg');
+      var img = document.getElementById('lightboxImg');
+      img.src = imgUrl;
+      bg.style.display = 'flex';
+    }
+    document.getElementById('lightboxBg').onclick = function(e) {
+      if (e.target === this) this.style.display = 'none';
+    };
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') document.getElementById('lightboxBg').style.display = 'none';
     });
   </script>
 </body>
