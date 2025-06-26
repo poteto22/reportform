@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>แสดงข้อมูลแบบ Card</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f9f9f9; }
+    .container { display: flex; flex-wrap: wrap; gap: 16px; padding: 20px; }
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      padding: 16px 20px;
+      width: 300px;
+      min-width: 220px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      cursor: pointer;
+      transition: box-shadow 0.2s;
+    }
+    .card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
+    .card .id { font-weight: bold; color: #4CAF50; }
+    .card .date { color: #888; font-size: 0.95em; }
+    .card .desc { margin: 8px 0; }
+    .card .status {
+      align-self: flex-end;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 0.95em;
+      color: #fff;
+      background: #2196F3;
+    }
+    .card .status.ใหม่ { background: #f44336; }
+    .card .status.กำลังดำเนินการ { background: #ff9800; }
+    .card .status.แก้ไขแล้ว { background: #4caf50; }
+    .card .status.ปิด { background: #607d8b; }
+
+    /* Modal styles */
+    .modal-bg {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0; top: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.35);
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-bg.active { display: flex; }
+    .modal {
+      background: #fff;
+      border-radius: 10px;
+      max-width: 400px;
+      width: 95vw;
+      padding: 24px 20px 16px 20px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+      position: relative;
+      animation: fadeIn 0.2s;
+    }
+    @keyframes fadeIn {
+      from { transform: translateY(40px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .modal h3 {
+      margin-top: 0;
+      margin-bottom: 16px;
+      color: #2196F3;
+      font-size: 1.2em;
+      text-align: center;
+    }
+    .modal .row {
+      margin-bottom: 10px;
+      display: flex;
+      gap: 8px;
+    }
+    .modal .label {
+      font-weight: bold;
+      color: #333;
+      min-width: 90px;
+      flex-shrink: 0;
+    }
+    .modal .value {
+      color: #444;
+      word-break: break-all;
+    }
+    .close-btn {
+      position: absolute;
+      top: 10px; right: 14px;
+      background: none;
+      border: none;
+      font-size: 1.5em;
+      color: #888;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+    .close-btn:hover { color: #f44336; }
+    .modal .img-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .modal .img-list img {
+      max-width: 120px;
+      max-height: 120px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      margin: 2px 0;
+      background: #fafafa;
+    }
+    @media (max-width: 600px) {
+      body { background: #e3f0ff !important; }
+      .container {
+        display: block;
+        padding: 8px 0;
+      }
+      .card {
+        width: 100vw;
+        min-width: unset;
+        max-width: 100vw;
+        margin: 0 0 18px 0;
+        padding: 22px 12px;
+        font-size: 1.18em;
+        box-sizing: border-box;
+        border-radius: 0;
+      }
+      .modal {
+        max-width: 99vw;
+        padding: 16px 6px 12px 6px;
+      }
+      .modal h3 {
+        font-size: 1.15em;
+      }
+      .modal .label {
+        min-width: 70px;
+        font-size: 1.08em;
+      }
+      .modal .value {
+        font-size: 1.08em;
+      }
+      .modal .img-list img,
+      .modal .row img {
+        max-width: 90px !important;
+        max-height: 90px !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h2 style="text-align:center;">รายการปัญหาจาก Google Sheets</h2>
+  <div class="container" id="cardContainer"></div>
+
+  <!-- Modal Popup -->
+  <div class="modal-bg" id="modalBg">
+    <div class="modal" id="modal">
+      <button class="close-btn" onclick="closeModal()">&times;</button>
+      <h3>รายละเอียดข้อมูล</h3>
+      <div id="modalContent"></div>
+    </div>
+  </div>
+
+  <script>
+    let allData = [];
+    let header = [];
+    fetch('http://192.168.22.126:3000/list')
+      .then(res => res.json())
+      .then(data => {
+        // ตรวจสอบค่าทุก cell ในคอลัมน์ J-N (index 9-13) ของแต่ละแถว
+        data.slice(1).forEach((row, idx) => {
+          for (let i = 9; i <= 13; i++) {
+            if (row[i]) {
+              console.log(`Row ${idx + 2} (column ${String.fromCharCode(65 + i)}):`, row[i]);
+            }
+          }
+        });
+        const container = document.getElementById('cardContainer');
+        if (!data || data.length < 2) {
+          container.innerHTML = '<p>ไม่พบข้อมูล</p>';
+          return;
+        }
+        header = data[0];
+        allData = data.slice(1);
+        allData.forEach(row => {
+          console.log('Row:', row);
+          const id = row[0] || '-';
+          const date = row[1] || '-';
+          const desc = row[4] || '-';
+          const status = row[6] || '-';
+          const card = document.createElement('div');
+          card.className = 'card';
+          card.innerHTML = `
+            <div class="id">ID: ${id}</div>
+            <div class="date">วันที่: ${date}</div>
+            <div class="desc">รายละเอียด: ${desc}</div>
+            <div class="status ${status}">${status}</div>
+          `;
+          card.onclick = () => showDetailById(id);
+          container.appendChild(card);
+        });
+      })
+      .catch(() => {
+        document.getElementById('cardContainer').innerHTML = '<p>เกิดข้อผิดพลาดในการโหลดข้อมูล</p>';
+      });
+
+    function extractImageUrl(cellValue) {
+      if (!cellValue) return null;
+      // ถ้าเป็นสูตร =IMAGE("...")
+      const match = cellValue.match(/^=IMAGE\("(.+?)"\)/i);
+      if (match) return match[1];
+      // ถ้าเป็น URL ตรง ๆ
+      if (cellValue.startsWith('http')) return cellValue;
+      return null;
+    }
+
+    function showDetailById(id) {
+      const row = allData.find(r => r[0] == id);
+      if (!row) {
+        alert('ไม่พบข้อมูล');
+        return;
+      }
+      const modalContent = document.getElementById('modalContent');
+      modalContent.innerHTML = '';
+      header.forEach((h, i) => {
+        if (i >= 9 && i <= 13) {
+          const imgUrl = extractImageUrl(row[i]);
+          if (imgUrl) {
+            console.log('imgUrl:', imgUrl);
+            const div = document.createElement('div');
+            div.className = 'row';
+            const proxyUrl = 'http://192.168.22.126:3000/image-proxy?url=' + encodeURIComponent(imgUrl);
+            div.innerHTML = `<span class="label">${h}:</span> <span class="value"><img src="${proxyUrl}" alt="รูปภาพ" loading="lazy" style="max-width:100px;max-height:100px;display:block;"></span>`;
+            modalContent.appendChild(div);
+            return;
+          }
+        }
+        const div = document.createElement('div');
+        div.className = 'row';
+        div.innerHTML = `<span class="label">${h}:</span> <span class="value">${row[i] || '-'}</span>`;
+        modalContent.appendChild(div);
+      });
+      document.getElementById('modalBg').classList.add('active');
+    }
+
+    function closeModal() {
+      document.getElementById('modalBg').classList.remove('active');
+    }
+
+    // ปิด modal เมื่อคลิกพื้นหลัง
+    document.getElementById('modalBg').addEventListener('click', function(e) {
+      if (e.target === this) closeModal();
+    });
+
+    // ปิด modal เมื่อกดปุ่ม Esc
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeModal();
+    });
+  </script>
+</body>
+</html>
