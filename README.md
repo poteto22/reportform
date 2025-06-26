@@ -7,6 +7,7 @@
 - ดึงข้อมูลจาก Google Sheets มาแสดงผลในรูปแบบ Card/Modal
 - รองรับการแนบและแสดงรูปภาพ (Google Drive URL หรือ =IMAGE)
 - UI สวยงาม ใช้งานง่ายทั้งบนคอมพิวเตอร์และมือถือ
+- สามารถแก้ไขสถานะและหมายเหตุใน popup ได้ทันทีด้วยปุ่ม "บันทึก" ปุ่มเดียว
 
 ## การติดตั้ง
 1. **Clone โปรเจกต์**
@@ -25,6 +26,12 @@
 ## การตั้งค่า Google Sheets
 - สร้าง Google Sheet และแชร์ให้ service account email สามารถแก้ไขได้
 - กำหนด `SPREADSHEET_ID` และ `SHEET_NAME` ในไฟล์ `index.js`
+- **index คอลัมน์ที่สำคัญ:**
+  - ID = 0 (A)
+  - วันที่ = 1 (B)
+  - สถานะ = 6 (G)
+  - หมายเหตุ = 8 (I)
+  - รูปภาพ = 9-13 (J-N)
 - ถ้าต้องการแนบรูปภาพ ให้ใส่ URL หรือสูตร `=IMAGE("url")` ในคอลัมน์ J-N
 
 ## การรันเซิร์ฟเวอร์
@@ -52,29 +59,19 @@ app.get('/list-page', (req, res) => {
 - ตรวจสอบ firewall และ network ให้อนุญาต port 3000
 
 ## Proxy รูปภาพ (แก้ปัญหา Google Drive ไม่แสดงรูป)
-เพิ่มใน `index.js`:
-```js
-const axios = require('axios');
-app.get('/image-proxy', async (req, res) => {
-  const url = req.query.url;
-  if (!url) return res.status(400).send('Missing url parameter');
-  try {
-    const response = await axios.get(url, { responseType: 'arraybuffer' });
-    res.set('Content-Type', response.headers['content-type']);
-    res.send(response.data);
-  } catch (err) {
-    res.status(500).send('Error loading image');
-  }
-});
-```
-แล้วใน HTML ให้ใช้
-```html
-<img src="http://localhost:3000/image-proxy?url=URLของรูป" ... >
-```
+- รูปภาพทั้งหมดจะแสดงผ่าน proxy endpoint `/image-proxy?url=...`
+- ไม่ได้เก็บไฟล์รูปภาพไว้ในเครื่อง แต่ดึงแบบ real-time ทุกครั้งที่มีการร้องขอ
+- ถ้า URL รูปภาพมีอักขระแปลกปลอม (เช่น ") หรือ ) ต่อท้าย จะถูกตัดออกอัตโนมัติ
+- ต้องตั้งค่า Google Drive ให้ไฟล์รูปเป็น "ทุกคนที่มีลิงก์ดูได้"
+
+## การแก้ไขสถานะและหมายเหตุใน popup
+- เมื่อคลิกที่ card จะมี popup แสดงรายละเอียด
+- สามารถแก้ไขสถานะและหมายเหตุได้ใน popup เดียว
+- กดปุ่ม "บันทึก" เพื่ออัปเดตข้อมูลทั้งสองอย่างไปยัง Google Sheets พร้อมกัน
 
 ## หมายเหตุ
-- ต้องตั้งค่า Google Drive ให้ไฟล์รูปเป็น "ทุกคนที่มีลิงก์ดูได้"
 - หากมีปัญหาเรื่อง CORS หรือรูปไม่แสดง ให้ใช้ proxy ตามตัวอย่าง
+- หากมีการเปลี่ยนแปลงโครงสร้างคอลัมน์ใน Google Sheets ต้องปรับ index ในโค้ดให้ตรงกัน
 
 ---
 
