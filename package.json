@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
   },
   "repository": {
     "type": "git",
@@ -18,10 +19,10 @@
   "homepage": "https://github.com/poteto22/reportform#readme",
   "description": "",
   "dependencies": {
-    "axios": "^1.10.0",
-    "body-parser": "^2.2.0",
+    "axios": "^1.7.2",
+    "body-parser": "^1.20.2",
     "cors": "^2.8.5",
-    "express": "^5.1.0",
-    "googleapis": "^150.0.1"
+    "express": "^4.19.2",
+    "googleapis": "^140.0.0"
   }
 }

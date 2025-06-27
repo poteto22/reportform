@@ -7,6 +7,7 @@ const path = require('path');
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
+app.use(express.static(__dirname));
 
 const SPREADSHEET_ID = '1UxVL2nHjLYhVMG5mSlsJyGhNgaq57pd3dd3ccezlANY';
 const SHEET_NAME = 'Reports';
@@ -61,9 +62,6 @@ app.get('/image-proxy', async (req, res) => {
   }
 });
 
-app.get('/list-page', (req, res) => {
-  res.sendFile(path.join(__dirname, 'list.html'));
-});
 
 app.post('/update-status', async (req, res) => {
   try {
@@ -158,13 +156,21 @@ app.post('/update-status-note', async (req, res) => {
       return res.status(404).send('ไม่พบข้อมูล');
     }
 
-    // อัปเดตสถานะและหมายเหตุพร้อมกัน
-    const updateRange = `${SHEET_NAME}!${String.fromCharCode(65 + statusCol)}${rowIndex + 1}:${String.fromCharCode(65 + noteCol)}${rowIndex + 1}`;
+    // อัปเดตสถานะและหมายเหตุแยกกันเพื่อไม่ให้กระทบคอลัมน์อื่น
+    // 1. อัปเดตสถานะ
     await sheets.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,
-      range: updateRange,
+      range: `${SHEET_NAME}!${String.fromCharCode(65 + statusCol)}${rowIndex + 1}`,
       valueInputOption: 'RAW',
-      resource: { values: [[status, '', note]] }, // '' สำหรับคอลัมน์ระหว่าง status กับ note
+      resource: { values: [[status]] },
+    });
+
+    // 2. อัปเดตหมายเหตุ
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${SHEET_NAME}!${String.fromCharCode(65 + noteCol)}${rowIndex + 1}`,
+      valueInputOption: 'RAW',
+      resource: { values: [[note]] },
     });
 
     res.status(200).send('อัปเดตสถานะและหมายเหตุสำเร็จ');
