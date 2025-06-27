@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const app = {
     allData: [],
     header: [],
+    API_BASE: window.location.origin,
 
     init: function() {
       this.fetchData();
@@ -9,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     },
 
     fetchData: function() {
-      fetch('http://localhost:3000/list')
+      fetch(`${this.API_BASE}/list`)
         .then(res => res.json())
         .then(data => {
           this.processData(data);
@@ -86,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const imgUrl = this.extractImageUrl(row[i]);
           if (imgUrl) {
             const cleanUrl = imgUrl.replace(/["')]+$/g, '');
-            const proxyUrl = 'http://localhost:3000/image-proxy?url=' + encodeURIComponent(cleanUrl);
+            const proxyUrl = `${this.API_BASE}/image-proxy?url=` + encodeURIComponent(cleanUrl);
             const div = document.createElement('div');
             div.className = 'row';
             div.innerHTML = `<span class="label">${h}:</span> <span class="value"><img src="${proxyUrl}" alt="รูปภาพ" loading="lazy" style="max-width:200px;max-height:200px;display:block;cursor:zoom-in;" onclick="app.openLightbox('${proxyUrl}')"></span>`;
@@ -134,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
       saveAllBtn.style.marginBottom = '8px';
       saveAllBtn.onclick = () => {
         const note = document.getElementById('noteInput') ? document.getElementById('noteInput').value : '';
-        fetch('http://localhost:3000/update-status-note', {
+        fetch(`${this.API_BASE}/update-status-note`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id, status: statusSelect.value, note })

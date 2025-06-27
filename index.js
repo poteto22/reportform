@@ -179,4 +179,8 @@ app.post('/update-status-note', async (req, res) => {
   }
 });
 
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'list.html'));
+});
+
 app.listen(3000, () => console.log('Server started on port 3000'));
