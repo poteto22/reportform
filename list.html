@@ -8,6 +8,20 @@
 </head>
 <body>
   <h2 style="text-align:center;">รายการปัญหาจาก Google Sheets</h2>
+  
+  <!-- Filter Section -->
+  <div class="filter-section">
+    <label for="statusFilter">กรองตามสถานะ:</label>
+    <select id="statusFilter" class="status-filter">
+      <option value="">ทั้งหมด</option>
+      <option value="New">New</option>
+      <option value="In Progress">In Progress</option>
+      <option value="Resolved">Resolved</option>
+      <option value="Closed">Closed</option>
+    </select>
+    <span id="filterCount" class="filter-count"></span>
+  </div>
+  
   <div class="container" id="cardContainer"></div>
 
   <!-- Modal Popup -->

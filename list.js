@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const app = {
     allData: [],
     header: [],
+    currentFilter: '',
     API_BASE: window.location.origin,
 
     init: function() {
@@ -38,16 +39,24 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         return parseDate(b[1]) - parseDate(a[1]);
       });
+      
+      // อัปเดตจำนวนรายการหลังจากโหลดข้อมูล
+      this.updateFilterCount(this.allData.length);
     },
 
     renderCards: function() {
       const container = document.getElementById('cardContainer');
       container.innerHTML = '';
-      if (this.allData.length === 0) {
-        container.innerHTML = '<p>ไม่พบข้อมูล</p>';
+      
+      // กรองข้อมูลตาม status
+      const filteredData = this.filterCards();
+      
+      if (filteredData.length === 0) {
+        container.innerHTML = '<p>ไม่พบข้อมูล' + (this.currentFilter ? ` สำหรับสถานะ "${this.currentFilter}"` : '') + '</p>';
         return;
       }
-      this.allData.forEach(row => {
+      
+      filteredData.forEach(row => {
         const id = row[0] || '-';
         const date = row[1] || '-';
         const desc = row[4] || '-';
@@ -64,6 +73,29 @@ document.addEventListener('DOMContentLoaded', () => {
         card.onclick = () => this.showDetailById(id);
         container.appendChild(card);
       });
+      
+      // อัปเดตจำนวนรายการที่แสดง
+      this.updateFilterCount(filteredData.length);
+    },
+
+    filterCards: function() {
+      if (!this.currentFilter) {
+        return this.allData;
+      }
+      return this.allData.filter(row => {
+        const status = row[6] || '';
+        return status === this.currentFilter;
+      });
+    },
+
+    updateFilterCount: function(count) {
+      const filterCount = document.getElementById('filterCount');
+      const totalCount = this.allData.length;
+      if (this.currentFilter) {
+        filterCount.textContent = `แสดง ${count} รายการจากทั้งหมด ${totalCount} รายการ`;
+      } else {
+        filterCount.textContent = `แสดงทั้งหมด ${totalCount} รายการ`;
+      }
     },
 
     extractImageUrl: function(cellValue) {
@@ -195,7 +227,9 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(msg => {
           this.showToast(msg, true);
           this.closeModal();
-          setTimeout(() => location.reload(), 1000);
+          setTimeout(() => {
+            this.fetchData();
+          }, 1000);
         })
         .catch(err => {
           this.showToast('เกิดข้อผิดพลาด: ' + err, false);
@@ -250,6 +284,12 @@ document.addEventListener('DOMContentLoaded', () => {
     },
 
     addEventListeners: function() {
+      // Filter event listener
+      document.getElementById('statusFilter').addEventListener('change', (e) => {
+        this.currentFilter = e.target.value;
+        this.renderCards();
+      });
+      
       document.getElementById('modalBg').addEventListener('click', e => {
         if (e.target === e.currentTarget) this.closeModal();
       });
