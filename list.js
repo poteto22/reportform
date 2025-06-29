@@ -68,10 +68,49 @@ document.addEventListener('DOMContentLoaded', () => {
 
     extractImageUrl: function(cellValue) {
       if (!cellValue) return null;
-      const match = cellValue.match(/^=IMAGE\("(.+?)"\)/i);
-      if (match) return match[1];
-      if (cellValue.startsWith('http')) return cellValue;
+      
+      // ลบช่องว่างและอักขระพิเศษ
+      const cleanValue = cellValue.trim();
+      
+      // ตรวจสอบ =IMAGE formula
+      const match = cleanValue.match(/^=IMAGE\("(.+?)"\)/i);
+      if (match) {
+        return this.processGoogleDriveUrl(match[1].trim());
+      }
+      
+      // ตรวจสอบ URL โดยตรง
+      if (cleanValue.startsWith('http')) {
+        return this.processGoogleDriveUrl(cleanValue);
+      }
+      
+      // ตรวจสอบ Google Drive URL ที่อาจมีรูปแบบอื่น
+      if (cleanValue.includes('drive.google.com')) {
+        return this.processGoogleDriveUrl(cleanValue);
+      }
+      
       return null;
+    },
+
+    processGoogleDriveUrl: function(url) {
+      if (!url) return url;
+      
+      // แปลง Google Drive URL ให้เป็นรูปแบบที่สามารถเข้าถึงได้โดยตรง
+      if (url.includes('drive.google.com/file/d/')) {
+        const fileId = url.match(/\/file\/d\/([a-zA-Z0-9-_]+)/);
+        if (fileId) {
+          return `https://drive.google.com/uc?export=view&id=${fileId[1]}`;
+        }
+      }
+      
+      // ถ้าเป็น Google Drive sharing URL
+      if (url.includes('drive.google.com/open?id=')) {
+        const fileId = url.match(/id=([a-zA-Z0-9-_]+)/);
+        if (fileId) {
+          return `https://drive.google.com/uc?export=view&id=${fileId[1]}`;
+        }
+      }
+      
+      return url;
     },
 
     showDetailById: function(id) {
@@ -90,7 +129,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const proxyUrl = `${this.API_BASE}/image-proxy?url=` + encodeURIComponent(cleanUrl);
             const div = document.createElement('div');
             div.className = 'row';
-            div.innerHTML = `<span class="label">${h}:</span> <span class="value"><img src="${proxyUrl}" alt="รูปภาพ" loading="lazy" style="max-width:200px;max-height:200px;display:block;cursor:zoom-in;" onclick="app.openLightbox('${proxyUrl}')"></span>`;
+            div.innerHTML = `
+              <span class="label">${h}:</span> 
+              <span class="value">
+                <img src="${proxyUrl}" 
+                     alt="รูปภาพ" 
+                     loading="lazy" 
+                     style="max-width:200px;max-height:200px;display:block;cursor:zoom-in;" 
+                     onclick="app.openLightbox('${proxyUrl}')"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+                     onload="this.nextElementSibling.style.display='none';">
+                <span style="display:none;color:red;font-size:12px;">ไม่สามารถโหลดรูปภาพได้</span>
+              </span>
+            `;
             modalContent.appendChild(div);
           } else {
             const div = document.createElement('div');

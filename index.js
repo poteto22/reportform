@@ -54,11 +54,49 @@ app.get('/image-proxy', async (req, res) => {
     return res.status(400).send('Missing url parameter');
   }
   try {
-    const response = await axios.get(url, { responseType: 'arraybuffer' });
-    res.set('Content-Type', response.headers['content-type']);
+    const response = await axios.get(url, { 
+      responseType: 'arraybuffer',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      },
+      timeout: 10000
+    });
+    
+    // ตรวจสอบ Content-Type และตั้งค่าที่เหมาะสม
+    const contentType = response.headers['content-type'];
+    if (contentType && contentType.includes('text/html')) {
+      // ถ้าได้ HTML แทนรูปภาพ ให้ลองแก้ไข URL
+      console.log('Warning: Received HTML instead of image for URL:', url);
+      return res.status(400).send('Invalid image URL - received HTML content');
+    }
+    
+    // ตั้งค่า Content-Type ที่เหมาะสม
+    if (contentType) {
+      res.set('Content-Type', contentType);
+    } else {
+      // ถ้าไม่มี Content-Type ให้เดาจาก URL
+      if (url.includes('.jpg') || url.includes('.jpeg')) {
+        res.set('Content-Type', 'image/jpeg');
+      } else if (url.includes('.png')) {
+        res.set('Content-Type', 'image/png');
+      } else if (url.includes('.gif')) {
+        res.set('Content-Type', 'image/gif');
+      } else if (url.includes('.webp')) {
+        res.set('Content-Type', 'image/webp');
+      } else {
+        res.set('Content-Type', 'image/jpeg'); // default
+      }
+    }
+    
+    // เพิ่ม headers เพื่อป้องกัน caching
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    
     res.send(response.data);
   } catch (err) {
-    res.status(500).send('Error loading image');
+    console.error('Image proxy error:', err.message);
+    res.status(500).send('Error loading image: ' + err.message);
   }
 });
 
