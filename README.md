@@ -8,8 +8,11 @@
 - รองรับการแนบและแสดงรูปภาพ (Google Drive URL หรือ =IMAGE)
 - UI สวยงาม ใช้งานง่ายทั้งบนคอมพิวเตอร์และมือถือ
 - สามารถแก้ไขสถานะและหมายเหตุใน popup ได้ทันทีด้วยปุ่ม "บันทึก" ปุ่มเดียว
+- รองรับการรันผ่าน Docker
 
 ## การติดตั้ง
+
+### วิธีที่ 1: ติดตั้งแบบปกติ
 1. **Clone โปรเจกต์**
    ```bash
    git clone https://github.com/poteto22/reportform.git
@@ -23,6 +26,18 @@
    - ดาวน์โหลดไฟล์ service account จาก Google Cloud Console
    - วางไฟล์ `credentials.json` ไว้ในโฟลเดอร์โปรเจกต์
 
+### วิธีที่ 2: ใช้ Docker
+1. **Clone โปรเจกต์**
+   ```bash
+   git clone https://github.com/poteto22/reportform.git
+   cd reportform
+   ```
+2. **เตรียมไฟล์ credentials.json** (เช่นเดียวกับวิธีที่ 1)
+3. **รันด้วย Docker Compose**
+   ```bash
+   docker-compose up --build
+   ```
+
 ## การตั้งค่า Google Sheets
 - สร้าง Google Sheet และแชร์ให้ service account email สามารถแก้ไขได้
 - กำหนด `SPREADSHEET_ID` และ `SHEET_NAME` ในไฟล์ `index.js`
@@ -35,28 +50,82 @@
 - ถ้าต้องการแนบรูปภาพ ให้ใส่ URL หรือสูตร `=IMAGE("url")` ในคอลัมน์ J-N
 
 ## การรันเซิร์ฟเวอร์
+
+### แบบปกติ
 ```bash
+npm start
+# หรือ
 node index.js
 ```
 
+### แบบ Docker
+```bash
+# รันในโหมด development
+docker-compose up
+
+# รันในโหมด background
+docker-compose up -d
+
+# หยุดการทำงาน
+docker-compose down
+```
+
 ## การใช้งานหน้าเว็บ
-### 1. เปิดไฟล์ list.html ตรง ๆ
+### 1. เข้าถึงผ่าน Express Server
+- เปิดเบราว์เซอร์ไปที่ [http://localhost:3000](http://localhost:3000)
+- Express จะเสิร์ฟหน้า `list.html` โดยอัตโนมัติ
+
+### 2. เปิดไฟล์ list.html ตรง ๆ
 - ดับเบิลคลิกไฟล์ `list.html` หรือเปิดผ่าน browser
 - เหมาะกับการทดสอบบนเครื่องเดียวกับ server
-
-### 2. ให้ Express เสิร์ฟหน้าเว็บ
-เพิ่มใน `index.js`:
-```js
-const path = require('path');
-app.get('/list-page', (req, res) => {
-  res.sendFile(path.join(__dirname, 'list.html'));
-});
-```
-แล้วเข้าใช้งานที่ [http://localhost:3000/list-page](http://localhost:3000/list-page)
 
 ### 3. การใช้งานจากเครื่องอื่นในเครือข่าย
 - เปลี่ยน URL ใน `list.html` จาก `localhost` เป็น IP ของเครื่อง server เช่น `http://192.168.1.10:3000/list`
 - ตรวจสอบ firewall และ network ให้อนุญาต port 3000
+
+## API Endpoints
+
+### GET `/list`
+ดึงข้อมูลทั้งหมดจาก Google Sheets
+
+### POST `/add`
+เพิ่มข้อมูลใหม่ไปยัง Google Sheets
+```json
+{
+  "values": ["ID", "วันที่", "รายละเอียด", ...]
+}
+```
+
+### POST `/update-status`
+อัปเดตสถานะของรายการ
+```json
+{
+  "id": "ID_RECORD",
+  "status": "NEW_STATUS"
+}
+```
+
+### POST `/update-note`
+อัปเดตหมายเหตุของรายการ
+```json
+{
+  "id": "ID_RECORD",
+  "note": "NEW_NOTE"
+}
+```
+
+### POST `/update-status-note`
+อัปเดตสถานะและหมายเหตุพร้อมกัน
+```json
+{
+  "id": "ID_RECORD",
+  "status": "NEW_STATUS",
+  "note": "NEW_NOTE"
+}
+```
+
+### GET `/image-proxy`
+Proxy สำหรับแสดงรูปภาพจาก Google Drive
 
 ## Proxy รูปภาพ (แก้ปัญหา Google Drive ไม่แสดงรูป)
 - รูปภาพทั้งหมดจะแสดงผ่าน proxy endpoint `/image-proxy?url=...`
@@ -69,9 +138,17 @@ app.get('/list-page', (req, res) => {
 - สามารถแก้ไขสถานะและหมายเหตุได้ใน popup เดียว
 - กดปุ่ม "บันทึก" เพื่ออัปเดตข้อมูลทั้งสองอย่างไปยัง Google Sheets พร้อมกัน
 
+## Dependencies
+- **express**: Web framework
+- **googleapis**: Google Sheets API
+- **axios**: HTTP client สำหรับ proxy รูปภาพ
+- **body-parser**: Parse request body
+- **cors**: Cross-Origin Resource Sharing
+
 ## หมายเหตุ
 - หากมีปัญหาเรื่อง CORS หรือรูปไม่แสดง ให้ใช้ proxy ตามตัวอย่าง
 - หากมีการเปลี่ยนแปลงโครงสร้างคอลัมน์ใน Google Sheets ต้องปรับ index ในโค้ดให้ตรงกัน
+- สำหรับ Docker ให้แน่ใจว่าไฟล์ `credentials.json` อยู่ในโฟลเดอร์โปรเจกต์
 
 ---
 
