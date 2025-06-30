@@ -1,42 +1,66 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>แสดงข้อมูลแบบ Card</title>
-  <link rel="stylesheet" href="list.css">
-</head>
-<body>
-  <h2 style="text-align:center;">รายการปัญหาจาก Google Sheets</h2>
-  
-  <!-- Filter Section -->
-  <div class="filter-section">
-    <label for="statusFilter">กรองตามสถานะ:</label>
-    <select id="statusFilter" class="status-filter">
-      <option value="">ทั้งหมด</option>
-      <option value="New">New</option>
-      <option value="In Progress">In Progress</option>
-      <option value="Resolved">Resolved</option>
-      <option value="Closed">Closed</option>
-    </select>
-    <span id="filterCount" class="filter-count"></span>
-  </div>
-  
-  <div class="container" id="cardContainer"></div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>แสดงข้อมูลแบบ Card</title>
+    <link rel="stylesheet" href="list.css" />
+  </head>
+  <body>
+    <h2 style="text-align: center">รายการปัญหา</h2>
 
-  <!-- Modal Popup -->
-  <div class="modal-bg" id="modalBg">
-    <div class="modal" id="modal">
-      <button class="close-btn" onclick="app.closeModal()">&times;</button>
-      <h3>รายละเอียดข้อมูล</h3>
-      <div id="modalContent"></div>
+    <!-- Filter Section -->
+    <div class="filter-section">
+      <label for="statusFilter">กรองตามสถานะ:</label>
+      <select id="statusFilter" class="status-filter">
+        <option value="">ทั้งหมด</option>
+        <option value="New">New</option>
+        <option value="In Progress">In Progress</option>
+        <option value="Resolved">Resolved</option>
+        <option value="Closed">Closed</option>
+      </select>
+      <span id="filterCount" class="filter-count"></span>
     </div>
-  </div>
 
-  <div id="lightboxBg" style="display:none;position:fixed;z-index:3000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.85);justify-content:center;align-items:center;">
-    <img id="lightboxImg" src="" alt="รูปภาพขยาย" style="max-width:95vw;max-height:90vh;border-radius:10px;box-shadow:0 4px 32px #0008;">
-  </div>
+    <div class="container" id="cardContainer"></div>
 
-  <script src="list.js"></script>
-</body>
+    <!-- Modal Popup -->
+    <div class="modal-bg" id="modalBg">
+      <div class="modal" id="modal">
+        <button class="close-btn" onclick="app.closeModal()">&times;</button>
+        <h3>รายละเอียดข้อมูล</h3>
+        <div id="modalContent"></div>
+      </div>
+    </div>
+
+    <div
+      id="lightboxBg"
+      style="
+        display: none;
+        position: fixed;
+        z-index: 3000;
+        left: 0;
+        top: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.85);
+        justify-content: center;
+        align-items: center;
+      "
+    >
+      <img
+        id="lightboxImg"
+        src=""
+        alt="รูปภาพขยาย"
+        style="
+          max-width: 95vw;
+          max-height: 90vh;
+          border-radius: 10px;
+          box-shadow: 0 4px 32px #0008;
+        "
+      />
+    </div>
+
+    <script src="list.js"></script>
+  </body>
 </html>
