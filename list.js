@@ -30,19 +30,14 @@ document.addEventListener("DOMContentLoaded", () => {
       this.allData.sort((a, b) => {
         const parseDate = (str) => {
           if (!str) return 0;
-          const match = str.match(
-            /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:, *(\d{1,2}:\d{2}:\d{2}))?$/,
-          );
+          // รองรับ DD/MM/YYYY, hh:mm:ss
+          const match = str.match(/^(\d{2})\/(\d{2})\/(\d{4}), *(\d{2}):(\d{2}):(\d{2})$/);
           if (!match) return 0;
-          const [, d, m, y, time] = match;
-          const day = d.padStart(2, "0");
-          const month = m.padStart(2, "0");
-          const t = time ? time : "00:00:00";
-          return new Date(`${y}-${month}-${day}T${t}`).getTime();
+          const [, d, m, y, hh, mm, ss] = match;
+          return new Date(`${y}-${m}-${d}T${hh}:${mm}:${ss}`).getTime();
         };
         return parseDate(b[1]) - parseDate(a[1]);
       });
-
       // อัปเดตจำนวนรายการหลังจากโหลดข้อมูล
       this.updateFilterCount(this.allData.length);
     },
@@ -121,7 +116,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return this.processGoogleDriveUrl(cleanValue);
       }
 
-      // ตรวจสอบ Google Drive URL ที่อาจมีรูปแบบอื่���
+      // ตรวจสอบ Google Drive URL ที่อาจมีรูปแบบอื่
       if (cleanValue.includes("drive.google.com")) {
         return this.processGoogleDriveUrl(cleanValue);
       }
@@ -162,11 +157,15 @@ document.addEventListener("DOMContentLoaded", () => {
       this.header.forEach((h, i) => {
         if (i >= 9 && i <= 13) {
           const imgUrl = this.extractImageUrl(row[i]);
+          const rawValue = row[i] || "";
           if (imgUrl) {
             const cleanUrl = imgUrl.replace(/["')]+$/g, "");
-            const proxyUrl =
-              `${this.API_BASE}/image-proxy?url=` +
-              encodeURIComponent(cleanUrl);
+            let fileName = this.getFileNameFromUrl(cleanUrl);
+            if (!fileName || fileName.length < 3 || fileName.startsWith('uc?export')) {
+              fileName = 'ไฟล์แนบ';
+            }
+            const proxyUrl = `${this.API_BASE}/image-proxy?url=` + encodeURIComponent(cleanUrl);
+            // แสดง <img> เสมอ ถ้าโหลดไม่ได้ให้แสดงชื่อไฟล์เป็นลิงก์ดาวน์โหลด
             const div = document.createElement("div");
             div.className = "row";
             div.innerHTML = `
@@ -177,16 +176,23 @@ document.addEventListener("DOMContentLoaded", () => {
                      loading="lazy"
                      style="max-width:200px;max-height:200px;display:block;cursor:zoom-in;"
                      onclick="app.openLightbox('${proxyUrl}')"
-                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"
                      onload="this.nextElementSibling.style.display='none';">
+                <a href="${cleanUrl}" target="_blank" rel="noopener" style="display:none;color:#2196f3;text-decoration:underline;">${fileName}</a>
                 <span style="display:none;color:red;font-size:12px;">ไม่สามารถโหลดรูปภาพได้</span>
               </span>
             `;
             modalContent.appendChild(div);
+          } else if (rawValue) {
+            // ถ้าไม่ใช่ URL ให้แสดงเป็นชื่อไฟล์และลิงก์ดาวน์โหลด (สมมติว่าไฟล์อยู่ใน /files/)
+            const div = document.createElement("div");
+            div.className = "row";
+            div.innerHTML = `<span class="label">${h}:</span> <span class="value"><a href="/files/${encodeURIComponent(rawValue)}" target="_blank" rel="noopener" style="color:#2196f3;text-decoration:underline;">${rawValue}</a></span>`;
+            modalContent.appendChild(div);
           } else {
             const div = document.createElement("div");
             div.className = "row";
-            div.innerHTML = `<span class="label">${h}:</span> <span class="value">${row[i] || "-"}</span>`;
+            div.innerHTML = `<span class="label">${h}:</span> <span class="value">-</span>`;
             modalContent.appendChild(div);
           }
         } else if (
@@ -246,7 +252,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }, 1000);
           })
           .catch((err) => {
-            this.showToast("เกิดข���อผิดพลาด: " + err, false);
+            this.showToast("เกิดข้อผิดพลาด: " + err, false);
           });
       };
 
@@ -322,6 +328,15 @@ document.addEventListener("DOMContentLoaded", () => {
         if (e.target === e.currentTarget)
           e.currentTarget.style.display = "none";
       };
+    },
+
+    getFileNameFromUrl: function (url) {
+      // ตรวจสอบว่าเป็นไฟล์รูปภาพหรือไม่
+      const isImage = /(\.jpg|\.jpeg|\.png|\.gif|\.webp)$/i.test(url) || url.match(/^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i);
+      if (isImage) {
+        return url.split('/').pop();
+      }
+      return url.split('/').pop();
     },
   };
 
