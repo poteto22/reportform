@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>แสดงข้อมูลแบบ Card</title>
     <link rel="stylesheet" href="list.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox.css"/>
   </head>
   <body>
     <h2 style="text-align: center">รายการปัญหา</h2>
@@ -48,6 +49,7 @@
         align-items: center;
       "
     >
+      <button id="lightboxPrev" style="position:absolute;left:16px;top:50%;transform:translateY(-50%);font-size:2em;background:none;border:none;color:#fff;cursor:pointer;z-index:3100;display:none;">&#8592;</button>
       <img
         id="lightboxImg"
         src=""
@@ -59,8 +61,10 @@
           box-shadow: 0 4px 32px #0008;
         "
       />
+      <button id="lightboxNext" style="position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:2em;background:none;border:none;color:#fff;cursor:pointer;z-index:3100;display:none;">&#8594;</button>
     </div>
 
     <script src="list.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox.umd.js"></script>
   </body>
 </html>

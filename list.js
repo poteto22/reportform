@@ -4,6 +4,8 @@ document.addEventListener("DOMContentLoaded", () => {
     header: [],
     currentFilter: "",
     API_BASE: window.location.origin,
+    lightboxImages: [],
+    lightboxIndex: 0,
 
     init: function () {
       this.fetchData();
@@ -154,32 +156,31 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       const modalContent = document.getElementById("modalContent");
       modalContent.innerHTML = "";
+      // เก็บลิสต์รูปภาพสำหรับ lightbox
+      this.lightboxImages = [];
       this.header.forEach((h, i) => {
         if (i >= 9 && i <= 13) {
           const imgUrl = this.extractImageUrl(row[i]);
           const rawValue = row[i] || "";
           if (imgUrl) {
             const cleanUrl = imgUrl.replace(/["')]+$/g, "");
+            const proxyUrl = `${this.API_BASE}/image-proxy?url=` + encodeURIComponent(cleanUrl);
             let fileName = this.getFileNameFromUrl(cleanUrl);
             if (!fileName || fileName.length < 3 || fileName.startsWith('uc?export')) {
               fileName = 'ไฟล์แนบ';
             }
-            const proxyUrl = `${this.API_BASE}/image-proxy?url=` + encodeURIComponent(cleanUrl);
-            // แสดง <img> เสมอ ถ้าโหลดไม่ได้ให้แสดงชื่อไฟล์เป็นลิงก์ดาวน์โหลด
+            // ใช้ Fancybox
             const div = document.createElement("div");
             div.className = "row";
             div.innerHTML = `
               <span class="label">${h}:</span>
               <span class="value">
-                <img src="${proxyUrl}"
-                     alt="รูปภาพ"
-                     loading="lazy"
-                     style="max-width:200px;max-height:200px;display:block;cursor:zoom-in;"
-                     onclick="app.openLightbox('${proxyUrl}')"
-                     onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"
-                     onload="this.nextElementSibling.style.display='none';">
-                <a href="${cleanUrl}" target="_blank" rel="noopener" style="display:none;color:#2196f3;text-decoration:underline;">${fileName}</a>
-                <span style="display:none;color:red;font-size:12px;">ไม่สามารถโหลดรูปภาพได้</span>
+                <a data-fancybox="gallery" href="${proxyUrl}" data-caption="${fileName}">
+                  <img src="${proxyUrl}"
+                       alt="รูปภาพ"
+                       loading="lazy"
+                       style="max-width:200px;max-height:200px;display:block;cursor:zoom-in;">
+                </a>
               </span>
             `;
             modalContent.appendChild(div);
@@ -304,30 +305,64 @@ document.addEventListener("DOMContentLoaded", () => {
       var img = document.getElementById("lightboxImg");
       img.src = imgUrl;
       bg.style.display = "flex";
+      // แสดงปุ่ม prev/next ถ้ามีหลายภาพ
+      const prevBtn = document.getElementById('lightboxPrev');
+      const nextBtn = document.getElementById('lightboxNext');
+      if (this.lightboxImages.length > 1) {
+        prevBtn.style.display = 'block';
+        nextBtn.style.display = 'block';
+      } else {
+        prevBtn.style.display = 'none';
+        nextBtn.style.display = 'none';
+      }
+      // ตั้งค่า index ปัจจุบัน
+      this.lightboxIndex = this.lightboxImages.indexOf(imgUrl);
+    },
+
+    closeLightbox: function() {
+      document.getElementById('lightboxBg').style.display = 'none';
+    },
+
+    showPrevLightbox: function() {
+      if (this.lightboxImages.length < 2) return;
+      this.lightboxIndex = (this.lightboxIndex - 1 + this.lightboxImages.length) % this.lightboxImages.length;
+      document.getElementById('lightboxImg').src = this.lightboxImages[this.lightboxIndex];
+    },
+
+    showNextLightbox: function() {
+      if (this.lightboxImages.length < 2) return;
+      this.lightboxIndex = (this.lightboxIndex + 1) % this.lightboxImages.length;
+      document.getElementById('lightboxImg').src = this.lightboxImages[this.lightboxIndex];
     },
 
     addEventListeners: function () {
       // Filter event listener
-      document
-        .getElementById("statusFilter")
-        .addEventListener("change", (e) => {
-          this.currentFilter = e.target.value;
-          this.renderCards();
-        });
-
-      document.getElementById("modalBg").addEventListener("click", (e) => {
+      document.getElementById('statusFilter').addEventListener('change', (e) => {
+        this.currentFilter = e.target.value;
+        this.renderCards();
+      });
+      
+      document.getElementById('modalBg').addEventListener('click', e => {
         if (e.target === e.currentTarget) this.closeModal();
       });
-      document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") {
+      document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
           this.closeModal();
-          document.getElementById("lightboxBg").style.display = "none";
+          document.getElementById('lightboxBg').style.display = 'none';
+        }
+        // เลื่อนภาพด้วยลูกศรซ้ายขวา
+        if (document.getElementById('lightboxBg').style.display === 'flex') {
+          if (e.key === 'ArrowLeft') this.showPrevLightbox();
+          if (e.key === 'ArrowRight') this.showNextLightbox();
         }
       });
-      document.getElementById("lightboxBg").onclick = (e) => {
-        if (e.target === e.currentTarget)
-          e.currentTarget.style.display = "none";
+      document.getElementById('lightboxBg').onclick = e => {
+        if (e.target === e.currentTarget) e.currentTarget.style.display = 'none';
       };
+      // เชื่อม event ปุ่ม prev/next/close
+      document.getElementById('lightboxPrev').onclick = (e) => { e.stopPropagation(); this.showPrevLightbox(); };
+      document.getElementById('lightboxNext').onclick = (e) => { e.stopPropagation(); this.showNextLightbox(); };
+      document.getElementById('lightboxImg').onclick = (e) => { e.stopPropagation(); };
     },
 
     getFileNameFromUrl: function (url) {
