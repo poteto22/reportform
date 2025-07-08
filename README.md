@@ -6,8 +6,12 @@
 - ส่งข้อมูลจากฟอร์มไปบันทึกใน Google Sheets
 - ดึงข้อมูลจาก Google Sheets มาแสดงผลในรูปแบบ Card/Modal
 - รองรับการแนบและแสดงรูปภาพ (Google Drive URL หรือ =IMAGE)
+- รองรับการแนบไฟล์อื่น ๆ (PDF, DOCX ฯลฯ) และแสดงเป็นลิงก์ดาวน์โหลด
 - UI สวยงาม ใช้งานง่ายทั้งบนคอมพิวเตอร์และมือถือ
 - สามารถแก้ไขสถานะและหมายเหตุใน popup ได้ทันทีด้วยปุ่ม "บันทึก" ปุ่มเดียว
+- รองรับการ filter by status (กรองตามสถานะ)
+- Modal popup กว้างขึ้นเมื่อดูบนคอมพิวเตอร์
+- ใช้ Fancybox สำหรับ lightbox gallery (ดูภาพขยาย/เลื่อนภาพ)
 - รองรับการรันผ่าน Docker
 
 ## การติดตั้ง
@@ -46,8 +50,9 @@
   - วันที่ = 1 (B)
   - สถานะ = 6 (G)
   - หมายเหตุ = 8 (I)
-  - รูปภาพ = 9-13 (J-N)
+  - รูปภาพ/ไฟล์แนบ = 9-13 (J-N)
 - ถ้าต้องการแนบรูปภาพ ให้ใส่ URL หรือสูตร `=IMAGE("url")` ในคอลัมน์ J-N
+- ถ้าเป็นไฟล์อื่น (pdf, docx ฯลฯ) ให้ใส่ชื่อไฟล์หรือ Google Drive link ในคอลัมน์ J-N
 
 ## การรันเซิร์ฟเวอร์
 
@@ -82,6 +87,30 @@ docker-compose down
 ### 3. การใช้งานจากเครื่องอื่นในเครือข่าย
 - เปลี่ยน URL ใน `list.html` จาก `localhost` เป็น IP ของเครื่อง server เช่น `http://192.168.1.10:3000/list`
 - ตรวจสอบ firewall และ network ให้อนุญาต port 3000
+
+## ฟีเจอร์ Fancybox (Lightbox Gallery)
+- คลิกที่รูปภาพใน modal เพื่อดูภาพขยายและเลื่อนดูภาพอื่น ๆ ได้ทันที
+- รองรับ swipe, zoom, ปุ่มปิด, แสดง caption (ชื่อไฟล์)
+- ไม่ต้องติดตั้งเพิ่ม มี CDN ใน list.html แล้ว
+
+**ตัวอย่างโค้ด Fancybox ที่ใช้ในโปรเจกต์:**
+```html
+<a data-fancybox="gallery" href="IMAGE_URL" data-caption="ชื่อไฟล์">
+  <img src="IMAGE_URL" alt="รูปภาพ" style="max-width:200px;max-height:200px;">
+</a>
+```
+
+## การแสดงไฟล์แนบ
+- ถ้าเป็นรูปภาพ (jpg, png ฯลฯ) จะแสดงเป็นภาพและสามารถคลิกดูขยายได้
+- ถ้าเป็นไฟล์อื่น (pdf, docx ฯลฯ หรือ Google Drive link ที่ไม่ใช่ภาพ) จะแสดงเป็นลิงก์ดาวน์โหลดพร้อมชื่อไฟล์ (หรือ "ไฟล์แนบ" ถ้าไม่มีชื่อ)
+
+## Filter by Status
+- มี dropdown สำหรับกรองรายการตามสถานะ (New, In Progress, Resolved, Closed)
+- แสดงจำนวนรายการที่กรองได้
+
+## Modal Popup
+- Modal แสดงรายละเอียดกว้างขึ้น (max-width: 600px) เมื่อดูบนคอมพิวเตอร์
+- รองรับ responsive/mobile
 
 ## API Endpoints
 
@@ -144,6 +173,7 @@ Proxy สำหรับแสดงรูปภาพจาก Google Drive
 - **axios**: HTTP client สำหรับ proxy รูปภาพ
 - **body-parser**: Parse request body
 - **cors**: Cross-Origin Resource Sharing
+- **@fancyapps/ui**: Fancybox Lightbox (CDN)
 
 ## หมายเหตุ
 - หากมีปัญหาเรื่อง CORS หรือรูปไม่แสดง ให้ใช้ proxy ตามตัวอย่าง
