@@ -32,11 +32,13 @@ document.addEventListener("DOMContentLoaded", () => {
       this.allData.sort((a, b) => {
         const parseDate = (str) => {
           if (!str) return 0;
-          // รองรับ DD/MM/YYYY, hh:mm:ss
-          const match = str.match(/^(\d{2})\/(\d{2})\/(\d{4}), *(\d{2}):(\d{2}):(\d{2})$/);
+          // รองรับ DD/MM/YYYY, hh:mm:ss (ชั่วโมง/นาที/วินาที เป็นเลขหลักเดียวหรือสองหลัก)
+          const match = str.match(/^(\d{2})\/(\d{2})\/(\d{4}), *(\d{1,2}):(\d{1,2}):(\d{1,2})$/);
           if (!match) return 0;
           const [, d, m, y, hh, mm, ss] = match;
-          return new Date(`${y}-${m}-${d}T${hh}:${mm}:${ss}`).getTime();
+          // เติม 0 ข้างหน้าถ้าเป็นเลขหลักเดียว เพื่อให้ new Date ทำงานถูกต้อง
+          const pad = (v) => v.padStart(2, '0');
+          return new Date(`${y}-${m}-${d}T${pad(hh)}:${pad(mm)}:${pad(ss)}`).getTime();
         };
         return parseDate(b[1]) - parseDate(a[1]);
       });
@@ -203,7 +205,7 @@ document.addEventListener("DOMContentLoaded", () => {
         ) {
           const noteDiv = document.createElement("div");
           noteDiv.className = "row";
-          noteDiv.innerHTML = `<span class="label">${h}:</span> <span class="value"><textarea id="noteInput" style="width:180px;min-height:48px;resize:vertical;font:400 13px Helvetica, sans-serif;">${row[i] || ""}</textarea></span>`;
+          noteDiv.innerHTML = `<span class="label">${h}:</span> <span class="value"><textarea id="noteInput" class="note-textarea" style="font-family: 'Roboto', Helvetica, Arial, sans-serif;">${row[i] || ""}</textarea></span>`;
           modalContent.appendChild(noteDiv);
         } else {
           const div = document.createElement("div");
