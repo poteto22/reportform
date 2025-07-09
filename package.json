@@ -19,6 +19,7 @@
   "homepage": "https://github.com/poteto22/reportform#readme",
   "description": "",
   "dependencies": {
+    "@fancyapps/fancybox": "^3.5.7",
     "axios": "^1.7.2",
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",
