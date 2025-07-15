@@ -272,19 +272,18 @@ body {
 .save-btn,
 .close-btn-bottom {
   min-width: 120px;
+  max-width: 200px;
   flex: 1 1 0;
-  max-width: 180px;
-  padding: 10px 0;
+  padding: 12px 0;
   font-size: 1.08em;
   font-weight: bold;
-  border-radius: 6px;
+  border-radius: 7px;
   box-sizing: border-box;
   border: 1.5px solid #2196f3;
   box-shadow: 0 2px 8px rgba(33, 150, 243, 0.08);
   cursor: pointer;
-  transition:
-    background 0.2s,
-    color 0.2s;
+  transition: background 0.2s, color 0.2s;
+  margin: 0;
 }
 .save-btn {
   background: linear-gradient(90deg, #2196f3 60%, #4fc3f7 100%);
@@ -311,8 +310,25 @@ body {
   display: flex;
   flex-direction: row;
   justify-content: center;
-  gap: 16px;
-  margin-top: 18px;
+  gap: 12px;
+  margin-top: 22px;
+  width: 100%;
+}
+@media (max-width: 600px) {
+  .btn-group-modal {
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 14px;
+    width: 100%;
+  }
+  .save-btn,
+  .close-btn-bottom {
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    font-size: 1.08em;
+    padding: 13px 0;
+  }
 }
 .note-textarea {
   width: 100%;
@@ -320,7 +336,7 @@ body {
   padding: 10px 12px;
   border-radius: 8px;
   border: 1.5px solid #bbb;
-  font-size: 1.08em;
+  font-size: 1em;
   font-family: 'Roboto', Helvetica, Arial, sans-serif;
   box-shadow: 0 2px 8px rgba(33, 150, 243, 0.06);
   background: #f7faff;
