@@ -161,7 +161,13 @@ document.addEventListener("DOMContentLoaded", () => {
       // เก็บลิสต์รูปภาพสำหรับ lightbox
       this.lightboxImages = [];
       this.header.forEach((h, i) => {
-        if (i >= 9 && i <= 13) {
+        if (i === 4 || h === "รายละเอียด" || h.toLowerCase().includes("desc")) {
+          // เพิ่ม textarea สำหรับรายละเอียดปัญหา
+          const descDiv = document.createElement("div");
+          descDiv.className = "row";
+          descDiv.innerHTML = `<span class="label">${h}:</span> <span class="value"><textarea id="descInput" class="note-textarea" style="font-family: 'Roboto', Helvetica, Arial, sans-serif;">${row[i] || ""}</textarea></span>`;
+          modalContent.appendChild(descDiv);
+        } else if (i >= 9 && i <= 13) {
           const imgUrl = this.extractImageUrl(row[i]);
           const rawValue = row[i] || "";
           if (imgUrl) {
@@ -241,10 +247,39 @@ document.addEventListener("DOMContentLoaded", () => {
         const note = document.getElementById("noteInput")
           ? document.getElementById("noteInput").value
           : "";
+        const desc = document.getElementById("descInput")
+          ? document.getElementById("descInput").value
+          : "";
         fetch(`${this.API_BASE}/update-status-note`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id, status: statusSelect.value, note }),
+          body: JSON.stringify({ id, status: statusSelect.value, note, desc }),
+        })
+          .then((res) => res.text())
+          .then((msg) => {
+            this.showToast(msg, true);
+            this.closeModal();
+            setTimeout(() => {
+              this.fetchData();
+            }, 1000);
+          })
+          .catch((err) => {
+            this.showToast("เกิดข้อผิดพลาด: " + err, false);
+          });
+      };
+
+      // ปุ่ม Send to Calendar
+      const sendCalendarBtn = document.createElement("button");
+      sendCalendarBtn.textContent = "Send to Calendar";
+      sendCalendarBtn.className = "save-btn";
+      sendCalendarBtn.style.background = "#43a047";
+      sendCalendarBtn.style.marginBottom = "8px";
+      sendCalendarBtn.style.marginRight = "8px";
+      sendCalendarBtn.onclick = () => {
+        fetch(`${this.API_BASE}/send-to-calendar`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id }),
         })
           .then((res) => res.text())
           .then((msg) => {
@@ -267,6 +302,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const btnGroup = document.createElement("div");
       btnGroup.className = "btn-group-modal";
+      btnGroup.appendChild(sendCalendarBtn);
       btnGroup.appendChild(saveAllBtn);
       btnGroup.appendChild(closeBtn);
       modalContent.appendChild(btnGroup);

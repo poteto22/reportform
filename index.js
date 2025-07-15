@@ -174,7 +174,7 @@ app.post('/update-note', async (req, res) => {
 
 app.post('/update-status-note', async (req, res) => {
   try {
-    const { id, status, note } = req.body;
+    const { id, status, note, desc } = req.body;
     const client = await auth.getClient();
     const sheets = google.sheets({ version: 'v4', auth: client });
 
@@ -187,6 +187,7 @@ app.post('/update-status-note', async (req, res) => {
     const idCol = 0; // ID อยู่คอลัมน์ A (index 0)
     const statusCol = 6; // สถานะอยู่คอลัมน์ G (index 6)
     const noteCol = 8; // หมายเหตุอยู่คอลัมน์ I (index 8)
+    const descCol = 4; // รายละเอียดปัญหาอยู่คอลัมน์ E (index 4)
 
     // หาแถวที่ตรงกับ id
     const rowIndex = rows.findIndex((row, idx) => idx > 0 && row[idCol] === id);
@@ -194,7 +195,7 @@ app.post('/update-status-note', async (req, res) => {
       return res.status(404).send('ไม่พบข้อมูล');
     }
 
-    // อัปเดตสถานะและหมายเหตุแยกกันเพื่อไม่ให้กระทบคอลัมน์อื่น
+    // อัปเดตสถานะและหมายเหตุและรายละเอียดปัญหาแยกกันเพื่อไม่ให้กระทบคอลัมน์อื่น
     // 1. อัปเดตสถานะ
     await sheets.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,
@@ -211,7 +212,50 @@ app.post('/update-status-note', async (req, res) => {
       resource: { values: [[note]] },
     });
 
-    res.status(200).send('อัปเดตสถานะและหมายเหตุสำเร็จ');
+    // 3. อัปเดตรายละเอียดปัญหา
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${SHEET_NAME}!${String.fromCharCode(65 + descCol)}${rowIndex + 1}`,
+      valueInputOption: 'RAW',
+      resource: { values: [[desc]] },
+    });
+
+    res.status(200).send('อัปเดตสถานะ หมายเหตุ และรายละเอียดปัญหาสำเร็จ');
+  } catch (err) {
+    res.status(500).send('เกิดข้อผิดพลาด: ' + err);
+  }
+});
+
+app.post('/send-to-calendar', async (req, res) => {
+  try {
+    const { id } = req.body;
+    const client = await auth.getClient();
+    const sheets = google.sheets({ version: 'v4', auth: client });
+
+    // ดึงข้อมูลทั้งหมดเพื่อหา row ที่ตรงกับ id
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${SHEET_NAME}!A1:O1000`,
+    });
+    const rows = response.data.values;
+    const idCol = 0; // ID อยู่คอลัมน์ A (index 0)
+    const calendarCol = 14; // Calendar อยู่คอลัมน์ O (index 14)
+
+    // หาแถวที่ตรงกับ id
+    const rowIndex = rows.findIndex((row, idx) => idx > 0 && row[idCol] === id);
+    if (rowIndex === -1) {
+      return res.status(404).send('ไม่พบข้อมูล');
+    }
+
+    // อัปเดตคอลัมน์ O ให้เป็น 'report'
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${SHEET_NAME}!${String.fromCharCode(65 + calendarCol)}${rowIndex + 1}`,
+      valueInputOption: 'RAW',
+      resource: { values: [['report']] },
+    });
+
+    res.status(200).send('ส่งข้อมูลไป Calendar สำเร็จ');
   } catch (err) {
     res.status(500).send('เกิดข้อผิดพลาด: ' + err);
   }
